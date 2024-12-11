@@ -1,0 +1,112 @@
+# How to Install OpenNebula Front-End on Ubuntu 22.04
+![image](https://hackmd.io/_uploads/SJ4Kwdv4Jx.png)
+
+## 1. Update the System and Install Required Packages
+Start by updating the system and installing prerequisites.
+```bash
+sudo apt update
+sudo apt -y install gnupg wget apt-transport-https
+```
+* **gnupg**: Used for managing keys and repositories securely.
+* **wget**: Needed to download files from the web.
+* **apt-transport-https**: Ensures APT supports repositories over HTTPS.
+
+## 2. Add the OpenNebula Repository
+**Step 1: Import the Repository Key**
+```bash
+curl -fsSL https://downloads.opennebula.io/repo/repo2.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/opennebula.gpg
+```
+**Step 2: Add the Repository**
+```bash
+source /etc/os-release
+echo "deb https://downloads.opennebula.org/repo/6.8/Ubuntu/$VERSION_ID stable opennebula" | sudo tee /etc/apt/sources.list.d/opennebula.list
+```
+## 3. Install and Configure the Database (MariaDB)
+**Step 1: Install MariaDB**
+```bash
+sudo apt update && sudo apt -y install mariadb-server
+```
+**Step 2: Secure the Installation**
+```bash
+sudo mysql_secure_installation
+```
+**Step 3: Create a Database and User**
+```sql
+sudo mysql -u root -p
+CREATE DATABASE opennebula;
+GRANT ALL PRIVILEGES ON opennebula.* TO 'oneadmin' IDENTIFIED BY 'useradm';
+FLUSH PRIVILEGES;
+EXIT;
+```
+## 4. Install OpenNebula Front-End Packages
+Install the necessary packages.
+```bash
+sudo apt update
+sudo apt install opennebula opennebula-sunstone opennebula-gate opennebula-flow
+```
+These packages install the core components and web interface for OpenNebula. Configuration files are stored in /etc/one.
+
+## 5. Install Ruby Runtime
+Some OpenNebula components require Ruby libraries.
+This script installs required Ruby gems and development libraries.
+```bash
+sudo /usr/share/one/install_gems
+```
+## 6. Configure the OpenNebula Database
+**Step 1: Edit the Configuration**
+Open the oned.conf file:
+```bash
+sudo nano /etc/one/oned.conf
+```
+Uncomment the SQLite backend line:
+```texte
+#DB = [ BACKEND = "sqlite" ]
+```
+Add the MySQL backend configuration:
+```texte
+DB = [ backend = "mysql",
+       server = "localhost",
+       port = 0,
+       user = "oneadmin",
+       passwd = "useradm",
+       db_name = "opennebula" ]
+```
+**Step 2: Test the Database Connection**
+```bash
+mysql -u oneadmin -p
+```
+![image](https://hackmd.io/_uploads/S1rjU_w4Jl.png)
+
+## 7. Configure oneadmin Credentials
+Retrieve the credentials file:
+```bash
+sudo cat /var/lib/one/.one/one_auth
+```
+The credentials (username and password) will be used to log in to the web interface.
+![image](https://hackmd.io/_uploads/rkUkPdwEJl.png)
+
+## 8. Configure Sunstone UI
+Edit the sunstone-server.conf file:
+```bash
+sudo nano /etc/one/sunstone-server.conf
+```
+Locate and uncomment the following lines (if required for private/public endpoints):
+```texte
+:private_fireedge_endpoint: http://localhost:2616
+:public_fireedge_endpoint: http://localhost:2616
+```
+## 9. Start OpenNebula Services
+Start and enable the OpenNebula daemons.
+```bash
+sudo systemctl start opennebula opennebula-sunstone
+sudo systemctl enable opennebula opennebula-sunstone
+```
+![image](https://hackmd.io/_uploads/SJCVwODV1g.png)
+
+## 10. Verify Installation and Access the UI
+Access the OpenNebula Sunstone web interface:
+```link
+http://127.0.0.1:9869
+```
+![Capture d'écran 2024-12-08 181954](https://hackmd.io/_uploads/SyEnSuv4ye.png)
+![Capture d'écran 2024-12-08 182350](https://hackmd.io/_uploads/H1gTrdvNJl.png)
